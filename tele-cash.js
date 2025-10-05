@@ -4,12 +4,12 @@ const TelegramBot = require("node-telegram-bot-api");
 const token = "8244287705:AAHhJoxZrr-O_hhvvbrUfAFGXrGmcMqrBOE";
 const bot = new TelegramBot(token, { polling: true });
 
-const NBSP = '\u00A0';
+const NBSP = "\u00A0";
 
 // 🔹 قائمة الأدمنز - ضيف أي ID تاني هنا
 const ADMIN_IDS = [
-  7046453429,  // الأدمن الأول
-  8183967382,    // الأدمن التاني
+  7046453429, // الأدمن الأول
+  8183967382, // الأدمن التاني
   // ضيف أدمنز تانيين هنا...
 ];
 
@@ -19,6 +19,20 @@ let settings = JSON.parse(fs.readFileSync("settings.json", "utf8"));
 // 🔹 حفظ الإعدادات
 function saveSettings() {
   fs.writeFileSync("settings.json", JSON.stringify(settings, null, 2));
+}
+
+// 🔹 حفظ اللوج
+function saveLog(adminName, oldNumber, newNumber) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    adminName: adminName,
+    oldNumber: oldNumber,
+    newNumber: newNumber,
+  };
+
+  // إضافة للملف
+  const logLine = JSON.stringify(logEntry) + "\n";
+  fs.appendFileSync("phone_numbers_log.txt", logLine);
 }
 
 // 🔹 التحقق إذا المستخدم أدمن
@@ -77,12 +91,12 @@ ${NBSP.repeat(20)}<code>${settings.phoneNumber}</code>${NBSP.repeat(10)}
 // 🟢 الأزرار (مع تبديل الأماكن)
 function getKeyboard(userId) {
   let buttons = [[{ text: "سحب" }, { text: "شحن" }]];
-  
+
   // 🔹 إظهار أزرار الأدمن فقط للأدمنز
   if (isAdmin(userId)) {
     buttons.push([{ text: "💾 حفظ الرقم" }, { text: "✏️ تغيير الرقم" }]);
   }
-  
+
   return {
     reply_markup: {
       keyboard: buttons,
@@ -98,10 +112,10 @@ bot.onText(/\/start/, (msg) => {
   const welcomeMessage = `مرحباً بك في <b>Tele Cash</b> 💎
 
 اختر العملية المطلوبة من الأزرار بالأسفل:`;
-  
+
   bot.sendMessage(msg.chat.id, welcomeMessage, {
-    parse_mode: 'HTML',
-    ...getKeyboard(msg.from.id)
+    parse_mode: "HTML",
+    ...getKeyboard(msg.from.id),
   });
 });
 
@@ -110,16 +124,20 @@ bot.on("message", (msg) => {
   const messageText = msg.text;
 
   // تجاهل الأوامر
-  if (messageText && messageText.startsWith('/')) {
+  if (messageText && messageText.startsWith("/")) {
     return;
   }
 
   // 🔹 معالجة إدخال الرقم الجديد من الأدمن
-  if (adminState.isEditing && isAdmin(msg.from.id) && !["✏️ تغيير الرقم","💾 حفظ الرقم"].includes(messageText)) {
+  if (
+    adminState.isEditing &&
+    isAdmin(msg.from.id) &&
+    !["✏️ تغيير الرقم", "💾 حفظ الرقم"].includes(messageText)
+  ) {
     adminState.tempNumber = messageText;
     bot.sendMessage(
-      chatId, 
-      `📌 الرقم الجديد هو: <code>${adminState.tempNumber}</code>\n\n اضغط على <b>💾 حفظ الرقم</b> لتأكيد الرقم الجديد`, 
+      chatId,
+      `📌 الرقم الجديد هو: <code>${adminState.tempNumber}</code>\n\n اضغط على <b>💾 حفظ الرقم</b> لتأكيد الرقم الجديد`,
       { parse_mode: "HTML", ...getKeyboard(msg.from.id) }
     );
     return;
@@ -127,43 +145,77 @@ bot.on("message", (msg) => {
 
   switch (messageText) {
     case "شحن":
-      bot.sendMessage(chatId, buildResponse1(), { parse_mode: "HTML", ...getKeyboard(msg.from.id) });
+      bot.sendMessage(chatId, buildResponse1(), {
+        parse_mode: "HTML",
+        ...getKeyboard(msg.from.id),
+      });
       break;
 
     case "سحب":
-      bot.sendMessage(chatId, response2, { parse_mode: "HTML", ...getKeyboard(msg.from.id) });
+      bot.sendMessage(chatId, response2, {
+        parse_mode: "HTML",
+        ...getKeyboard(msg.from.id),
+      });
       break;
 
     case "✏️ تغيير الرقم":
       // 🔹 التحقق من صلاحية الأدمن
       if (!isAdmin(msg.from.id)) {
-        bot.sendMessage(chatId, "⛔ ليس لديك صلاحية لاستخدام هذا الأمر", getKeyboard(msg.from.id));
+        bot.sendMessage(
+          chatId,
+          "⛔ ليس لديك صلاحية لاستخدام هذا الأمر",
+          getKeyboard(msg.from.id)
+        );
         return;
       }
       adminState.isEditing = true;
-      bot.sendMessage(chatId, "✏️ اكتب الرقم الجديد الآن:", getKeyboard(msg.from.id));
+      bot.sendMessage(
+        chatId,
+        "✏️ اكتب الرقم الجديد الآن:",
+        getKeyboard(msg.from.id)
+      );
       break;
 
     case "💾 حفظ الرقم":
       // 🔹 التحقق من صلاحية الأدمن
       if (!isAdmin(msg.from.id)) {
-        bot.sendMessage(chatId, "⛔ ليس لديك صلاحية لاستخدام هذا الأمر", getKeyboard(msg.from.id));
+        bot.sendMessage(
+          chatId,
+          "⛔ ليس لديك صلاحية لاستخدام هذا الأمر",
+          getKeyboard(msg.from.id)
+        );
         return;
       }
-      
+
       if (adminState.tempNumber) {
+        // ✅ احفظ الرقم القديم هنا قبل التغيير
+        const oldNumber = settings.phoneNumber;
+        
         settings.phoneNumber = adminState.tempNumber;
         saveSettings();
         adminState.isEditing = false;
-        
-        // 🔹 إرسال إشعار لجميع الأدمنز بتغيير الرقم (بدون رسالة ثانية)
+
+        // 🔹 إرسال إشعار لجميع الأدمنز بتغيير الرقم
         const notificationMsg = `✅ تم تغيير الرقم بواسطة ${msg.from.first_name}\n\n📞 الرقم الجديد: <code>${settings.phoneNumber}</code>`;
-        
-        ADMIN_IDS.forEach(adminId => {
-          bot.sendMessage(adminId, notificationMsg, { parse_mode: "HTML" }).catch(() => {});
+
+        ADMIN_IDS.forEach((adminId) => {
+          bot
+            .sendMessage(adminId, notificationMsg, { parse_mode: "HTML" })
+            .catch(() => {});
         });
+
+        // ✅ حفظ في اللوج
+        saveLog(
+          msg.from.first_name,
+          oldNumber,
+          adminState.tempNumber
+        );
       } else {
-        bot.sendMessage(chatId, "⚠️ لم يتم إدخال أي رقم جديد.", getKeyboard(msg.from.id));
+        bot.sendMessage(
+          chatId,
+          "⚠️ لم يتم إدخال أي رقم جديد.",
+          getKeyboard(msg.from.id)
+        );
       }
       break;
 
@@ -174,13 +226,13 @@ bot.on("message", (msg) => {
 });
 
 // Error handling
-bot.on('error', (error) => {
-  console.log('Bot error:', error.message);
+bot.on("error", (error) => {
+  console.log("Bot error:", error.message);
 });
 
-bot.on('polling_error', (error) => {
-  console.log('Connection error:', error.message);
+bot.on("polling_error", (error) => {
+  console.log("Connection error:", error.message);
 });
 
-console.log('✅ Bot is running...');
-console.log(`👥 Admins: ${ADMIN_IDS.join(', ')}`);
+console.log("✅ Bot is running...");
+console.log(`👥 Admins: ${ADMIN_IDS.join(", ")}`);
