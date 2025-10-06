@@ -6,12 +6,8 @@ const bot = new TelegramBot(token, { polling: true });
 
 const NBSP = "\u00A0";
 
-// 🔹 قائمة الأدمنز - ضيف أي ID تاني هنا
-const ADMIN_IDS = [
-  7046453429, // الأدمن الأول
-  8183967382, // الأدمن التاني
-  // ضيف أدمنز تانيين هنا...
-];
+// 🔹 قائمة الأدمنز
+const ADMIN_IDS = [7046453429, 8183967382];
 
 // 🔹 تحميل الإعدادات
 let settings = JSON.parse(fs.readFileSync("settings.json", "utf8"));
@@ -21,18 +17,15 @@ function saveSettings() {
   fs.writeFileSync("settings.json", JSON.stringify(settings, null, 2));
 }
 
-// 🔹 حفظ اللوج
+// 🔹 حفظ سجل التغييرات
 function saveLog(adminName, oldNumber, newNumber) {
   const logEntry = {
     timestamp: new Date().toISOString(),
-    adminName: adminName,
-    oldNumber: oldNumber,
-    newNumber: newNumber,
+    adminName,
+    oldNumber,
+    newNumber,
   };
-
-  // إضافة للملف
-  const logLine = JSON.stringify(logEntry) + "\n";
-  fs.appendFileSync("phone_numbers_log.txt", logLine);
+  fs.appendFileSync("phone_numbers_log.txt", JSON.stringify(logEntry) + "\n");
 }
 
 // 🔹 التحقق إذا المستخدم أدمن
@@ -46,128 +39,156 @@ let adminState = {
   tempNumber: null,
 };
 
-const response2 = `${NBSP.repeat(20)}🏦 <b>عنوان السحب</b> 🏦
+// 🟢 رسالة السحب المنسقة
+const responseWithdrawSingle = {
+  text: `
+${NBSP.repeat(12)}🏦 <b>عنوان السحب</b> 🏦
 
-💰 طريقة السحب <b>نقد</b>
+${NBSP.repeat(2)}💰 <b>طريقة السحب:</b> ${NBSP.repeat(2)}<b>نقد</b>
+${NBSP.repeat(2)}📍 <b>المدينة:</b> ${NBSP.repeat(7)}<b>Cairo</b>
+${NBSP.repeat(2)}🏪 <b>الشارع:</b> ${NBSP.repeat(6)}<b>Al-Wafi Cash</b>
 
-📍 <i>المدينه</i> : <b>Cairo</b>
+${NBSP.repeat(8)}💸💸💸💸💸
 
-🏪 <i>الشارع</i> : <b>Al-Wafi Cash</b>
+💬 <b>بعد ما يكون كود السحب جاهز</b>  
+<b>✉️ أرسل:</b>
+${NBSP.repeat(4)}• <b>كود السحب 💳</b>  
+${NBSP.repeat(4)}• <b>رقم الكاش 📱</b>
+`,
+  parse_mode: "HTML",
+  reply_markup: {
+    inline_keyboard: [
+      [
+        {
+          text: "📤 ابعت بيانات السحب",
+          url: "https://t.me/Mirajojo12",
+        },
+      ],
+    ],
+  },
+};
 
-${NBSP.repeat(13)}💸${NBSP.repeat(8)}💸${NBSP.repeat(8)}💸${NBSP.repeat(8)}💸
-
-📱 <b>ابعت الكود الى هيظهرلك</b>
-
-💳 <b>ابعت رقم الكاش</b>`;
-
-function buildResponse1() {
-  return `
+// 🟢 رسالة الشحن المنسقة
+function buildRechargeSingle() {
+  return {
+    text: `
 ${NBSP.repeat(15)}💎 <b>Tele Cash</b> ترحب بك 💎
 
-💸 <b>التحويل من فودافون كاش</b> :
+${NBSP.repeat(2)}💸 <b>التحويل من فودافون كاش:</b>
+📋 اضغط على الرقم للنسخ 👇
 
-📋 اضغط علي الرقم للنسخ 👇
+${NBSP.repeat(25)}<b><code>${settings.phoneNumber}</code></b>${NBSP.repeat(10)}
 
-${NBSP.repeat(20)}<code>${settings.phoneNumber}</code>${NBSP.repeat(10)}
+💬 <b>بعد التحويل اضغط على الزر بالأسفل لإرسال بيانات الشحن</b>
 
-✅ تم الشحن ♥️✨
+<b>✉️ أرسل:</b>
+${NBSP.repeat(5)}• <b>تم الشحن</b>  
+${NBSP.repeat(4)}• <b>اسكرين التحويل 📸</b>  
+${NBSP.repeat(4)}• <b>الرقم اللي اتحول منه الفلوس 📞</b>  
+${NBSP.repeat(4)}• <b>حساب اللاعب 🆔</b>
 
-شكراً عشان اخترت <b>Tele Cash</b> 💞
-
-⚡ لضمان أسرع عملية من خلالنا اتبع الخطوات التالية 👇
-
-🔸 ابعت اسكرين التحويل 📸  
-🔸 الرقم الي اتحول منه الفلوس 📞  
- 🎰 حساب اللاعب 🆔
-
-⚠️ <b>تحذير</b> ‼️📢  
-انا مش مسؤول لو بعت علي رقم قديم ❌
-
-🔄 الأرقام بتتغير باستمرار  
-💸 اسأل دايماً علي رقم الكاش المتاح للتحويل
-`;
+⚠️ <b>تحذير:</b>  
+انا مش مسؤول لو بعت على رقم قديم ❌  
+🔄 الأرقام بتتغير باستمرار، اسأل دايمًا على الرقم المتاح.
+`,
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: "📤 ابعت بيانات الشحن",
+            url: "https://t.me/Mirajojo12",
+          },
+        ],
+      ],
+    },
+  };
 }
 
-// 🟢 الأزرار (مع تبديل الأماكن)
+const contactButtonOnly = {
+  text: "\u200B",
+  parse_mode: "HTML",
+  reply_markup: {
+    inline_keyboard: [
+      [
+        {
+          text: "💬 تواصل معانا",
+          url: "https://t.me/Mirajojo12",
+        },
+      ],
+    ],
+  },
+};
+
+// 🟢 لوحة الأزرار الرئيسية
 function getKeyboard(userId) {
   let buttons = [[{ text: "سحب" }, { text: "شحن" }]];
-
-  // 🔹 إظهار أزرار الأدمن فقط للأدمنز
   if (isAdmin(userId)) {
     buttons.push([{ text: "💾 حفظ الرقم" }, { text: "✏️ تغيير الرقم" }]);
   }
-
   return {
     reply_markup: {
       keyboard: buttons,
       resize_keyboard: true,
       persistent: true,
-      one_time_keyboard: false,
     },
   };
 }
 
-// بداية البوت
+// 🟢 بدء البوت
 bot.onText(/\/start/, (msg) => {
   const welcomeMessage = `مرحباً بك في <b>Tele Cash</b> 💎
 
 اختر العملية المطلوبة من الأزرار بالأسفل:`;
-
   bot.sendMessage(msg.chat.id, welcomeMessage, {
     parse_mode: "HTML",
     ...getKeyboard(msg.from.id),
   });
 });
 
+// 🟢 استقبال الرسائل
 bot.on("message", (msg) => {
   const chatId = msg.chat.id;
-  const messageText = msg.text;
+  const text = msg.text;
 
-  // تجاهل الأوامر
-  if (messageText && messageText.startsWith("/")) {
-    return;
-  }
+  if (!text || text.startsWith("/")) return;
 
-  // 🔹 معالجة إدخال الرقم الجديد من الأدمن
+  // 🟣 وضع تعديل الرقم للأدمن
   if (
     adminState.isEditing &&
     isAdmin(msg.from.id) &&
-    !["✏️ تغيير الرقم", "💾 حفظ الرقم"].includes(messageText)
+    !["✏️ تغيير الرقم", "💾 حفظ الرقم"].includes(text)
   ) {
-    adminState.tempNumber = messageText;
+    adminState.tempNumber = text;
     bot.sendMessage(
       chatId,
-      `📌 الرقم الجديد هو: <code>${adminState.tempNumber}</code>\n\n اضغط على <b>💾 حفظ الرقم</b> لتأكيد الرقم الجديد`,
+      `📌 الرقم الجديد هو: <code>${adminState.tempNumber}</code>\n\nاضغط على 💾 حفظ الرقم لتأكيد التغيير.`,
       { parse_mode: "HTML", ...getKeyboard(msg.from.id) }
     );
     return;
   }
 
-  switch (messageText) {
+  // 🟢 الحالات المختلفة
+  switch (text) {
     case "شحن":
-      bot.sendMessage(chatId, buildResponse1(), {
-        parse_mode: "HTML",
-        ...getKeyboard(msg.from.id),
-      });
+      bot.sendMessage(
+        chatId,
+        buildRechargeSingle().text,
+        buildRechargeSingle()
+      );
       break;
 
     case "سحب":
-      bot.sendMessage(chatId, response2, {
-        parse_mode: "HTML",
-        ...getKeyboard(msg.from.id),
-      });
+      bot.sendMessage(
+        chatId,
+        responseWithdrawSingle.text,
+        responseWithdrawSingle
+      );
       break;
 
     case "✏️ تغيير الرقم":
-      // 🔹 التحقق من صلاحية الأدمن
-      if (!isAdmin(msg.from.id)) {
-        bot.sendMessage(
-          chatId,
-          "⛔ ليس لديك صلاحية لاستخدام هذا الأمر",
-          getKeyboard(msg.from.id)
-        );
-        return;
-      }
+      if (!isAdmin(msg.from.id))
+        return bot.sendMessage(chatId, "⛔ ليس لديك صلاحية لاستخدام هذا الأمر");
       adminState.isEditing = true;
       bot.sendMessage(
         chatId,
@@ -177,62 +198,37 @@ bot.on("message", (msg) => {
       break;
 
     case "💾 حفظ الرقم":
-      // 🔹 التحقق من صلاحية الأدمن
-      if (!isAdmin(msg.from.id)) {
-        bot.sendMessage(
-          chatId,
-          "⛔ ليس لديك صلاحية لاستخدام هذا الأمر",
-          getKeyboard(msg.from.id)
-        );
-        return;
-      }
+      if (!isAdmin(msg.from.id))
+        return bot.sendMessage(chatId, "⛔ ليس لديك صلاحية لاستخدام هذا الأمر");
 
       if (adminState.tempNumber) {
-        // ✅ احفظ الرقم القديم هنا قبل التغيير
         const oldNumber = settings.phoneNumber;
-        
         settings.phoneNumber = adminState.tempNumber;
         saveSettings();
         adminState.isEditing = false;
 
-        // 🔹 إرسال إشعار لجميع الأدمنز بتغيير الرقم
-        const notificationMsg = `✅ تم تغيير الرقم بواسطة ${msg.from.first_name}\n\n📞 الرقم الجديد: <code>${settings.phoneNumber}</code>`;
-
-        ADMIN_IDS.forEach((adminId) => {
-          bot
-            .sendMessage(adminId, notificationMsg, { parse_mode: "HTML" })
-            .catch(() => {});
-        });
-
-        // ✅ حفظ في اللوج
-        saveLog(
-          msg.from.first_name,
-          oldNumber,
-          adminState.tempNumber
-        );
-      } else {
+        // 🟢 فقط رسالة تأكيد محلية بدون إشعار
         bot.sendMessage(
           chatId,
-          "⚠️ لم يتم إدخال أي رقم جديد.",
-          getKeyboard(msg.from.id)
+          `✅ تم تغيير الرقم بنجاح إلى:\n\n📞 <code>${settings.phoneNumber}</code>`,
+          { parse_mode: "HTML" }
         );
+
+        saveLog(msg.from.first_name, oldNumber, adminState.tempNumber);
+      } else {
+        bot.sendMessage(chatId, "⚠️ لم يتم إدخال أي رقم جديد.");
       }
       break;
 
+    // 🟣 أي رسالة غير مفهومة → يظهر زر تواصل معانا فقط
     default:
-      // ❌ مفيش أي رد هنا عشان مايبعتش "تم استلام رسالتك"
+      if (!isAdmin(msg.from.id)) {
+        bot.sendMessage(chatId, "\u200B", contactButtonOnly);
+      }
       break;
   }
 });
 
-// Error handling
-bot.on("error", (error) => {
-  console.log("Bot error:", error.message);
-});
-
-bot.on("polling_error", (error) => {
-  console.log("Connection error:", error.message);
-});
-
+// 🟢 Error Handling
+bot.on("polling_error", (err) => console.log("Polling error:", err.message));
 console.log("✅ Bot is running...");
-console.log(`👥 Admins: ${ADMIN_IDS.join(", ")}`);
