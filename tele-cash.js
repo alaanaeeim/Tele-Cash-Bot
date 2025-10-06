@@ -112,7 +112,7 @@ const contactButtonOnly = {
     inline_keyboard: [
       [
         {
-          text: "💬 تواصل معانا",
+          text: "  💬 تواصل معانا  ",
           url: "https://t.me/Mirajojo12",
         },
       ],
@@ -223,7 +223,7 @@ bot.on("message", (msg) => {
     // 🟣 أي رسالة غير مفهومة → يظهر زر تواصل معانا فقط
     default:
       if (!isAdmin(msg.from.id)) {
-        bot.sendMessage(chatId, "\u200B", contactButtonOnly);
+        bot.sendMessage(chatId, "اضغط هنا واتواصل معانا", contactButtonOnly);
       }
       break;
   }
